@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 import os
+import io
 import oracledb
 
 # --- Configuração da Página ---
@@ -113,6 +114,17 @@ def carregar_dados(data_inicial, data_final, cd_setor):
     finally:
         if connection:
             connection.close()
+
+def dataframe_to_excel_bytes(df: pd.DataFrame) -> bytes:
+    """
+    Converte um DataFrame para um arquivo Excel (.xlsx) em memória e retorna os bytes.
+    """
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='IndicadoresCenso')
+    # Pega o conteúdo do buffer em memória
+    processed_data = output.getvalue()
+    return processed_data
 
 # --- Funções de Lógica e Exibição (Refatoradas) ---
 
@@ -246,18 +258,27 @@ if buscar:
     if not df.empty:
         indicadores = calcular_indicadores(df)
         exibir_cartoes_indicadores(indicadores)
-        
+
+        # Prepara o DataFrame para exibição e download
+        colunas_para_remover = [
+            'CD_SETOR_ATENDIMENTO', 'CD_MEWS', 'CD_BRADEN',
+            'CD_MORSE', 'CD_SAPSIII', 'CD_RASS', 'CD_GLASGOW','CD_FUGULIN'
+        ]
+        df_para_exibir = df.drop(columns=colunas_para_remover, errors='ignore')
+        df_para_exibir = df_para_exibir.sort_values(by='LEITO')
+
+        # --- Botão de Download para Excel ---
+        excel_bytes = dataframe_to_excel_bytes(df_para_exibir)
+        st.download_button(
+            label="📥 Baixar dados em Excel",
+            data=excel_bytes,
+            file_name="Indicadores_de_Pacientes_Censo.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
         with st.expander("Ver Detalhes dos Pacientes"):
-            # Lista de colunas de código a serem removidas da visualização
-            colunas_para_remover = [
-                'CD_SETOR_ATENDIMENTO', 'CD_MEWS', 'CD_BRADEN',
-                'CD_MORSE', 'CD_SAPSIII', 'CD_RASS', 'CD_GLASGOW','CD_FUGULIN'
-            ]
-            # Cria um DataFrame para exibição sem as colunas indesejadas, ignorando erros se a coluna não existir
-            df_para_exibir = df.drop(columns=colunas_para_remover, errors='ignore')
-            # Ordena o DataFrame pela coluna 'LEITO' para melhor visualização
-            df_para_exibir = df_para_exibir.sort_values(by='LEITO')
             st.dataframe(df_para_exibir, use_container_width=True)
+
     else:
         st.warning("Nenhum dado encontrado para os filtros selecionados.")
 else:
