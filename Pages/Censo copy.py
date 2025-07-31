@@ -86,7 +86,7 @@ def carregar_setores():
         if connection:
             connection.close()
 
-@st.cache_data(ttl=3600, show_spinner=False)  # Cache por 1 hora
+@st.cache_data(ttl=3600)  # Cache por 1 hora
 def carregar_dados(data_inicial, data_final, cd_setor):
     """Carrega os dados principais do censo com base nos filtros."""
     connection = conectar_banco()
@@ -254,8 +254,7 @@ with col_filtro4:
 
 # --- Lógica de Exibição ---
 if buscar:
-    with st.spinner("Buscando dados no banco... Por favor, aguarde."):
-        df = carregar_dados(data_inicial, data_final, cd_setor_selecionado)
+    df = carregar_dados(data_inicial, data_final, cd_setor_selecionado)
     if not df.empty:
         indicadores = calcular_indicadores(df)
         exibir_cartoes_indicadores(indicadores)

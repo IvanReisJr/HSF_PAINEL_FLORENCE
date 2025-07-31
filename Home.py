@@ -26,6 +26,6 @@ if __name__ == "__main__":
     st.image(logo_path,width=400)
     st.write('\n\n\n\n')
     st.write('\n\n\n\n')
-    st.write('# Dashboard - Enfermagem')
+    st.write('# Dashboard Florence - HSF - Enfermagem')
     st.write('\n\n\n\n')
     st.write('## Destinado para exibição de indicadores pertinentes ao Enfermagem do Hospital...')
