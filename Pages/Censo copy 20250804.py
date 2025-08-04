@@ -133,7 +133,7 @@ def calcular_indicadores(df):
     Calcula os indicadores de forma modular e extensível.
     """
     indicadores = {
-        'total_atendimentos': df['NR_ATENDIMENTO'].dropna().nunique()
+        '🤒total_atendimentos': df['NR_ATENDIMENTO'].dropna().nunique()
     }
 
     config_indicadores = [
@@ -156,9 +156,7 @@ def calcular_indicadores(df):
                 indicadores[f'total_{nome}'] = df[col_cd].dropna().count()
         
         if col_ds and col_ds in df.columns:
-            # Cria o DataFrame de contagem de forma robusta, nomeando os eixos diretamente.
-            df_counts = df[col_ds].value_counts().rename_axis('Descrição').reset_index(name='Qtde')
-            indicadores[f'contagem_{nome}'] = df_counts
+            indicadores[f'contagem_{nome}'] = df[col_ds].value_counts()
             
     return indicadores
 
@@ -168,7 +166,7 @@ def exibir_cartoes_indicadores(indicadores):
     """
     # --- Linha 1: Total de Atendimentos ---
     if 'total_atendimentos' in indicadores:
-        st.metric("🤒 Total de Atendimentos", int(indicadores['total_atendimentos']))
+        st.metric("Total de Atendimentos", int(indicadores['total_atendimentos']))
     st.divider()
 
     # --- Linha 2: 4 colunas de métricas ---
@@ -200,38 +198,6 @@ def exibir_cartoes_indicadores(indicadores):
 
     # --- Linha 4: Quantidades em 3 colunas ---
     st.subheader("Distribuição por Escala")
-
-    # CSS para forçar a largura das colunas nas tabelas de distribuição.
-    # Isso garante que todas as tabelas tenham o mesmo layout fixo e proporcional.
-    custom_table_css = """
-    <style>
-        .dist-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .dist-table th, .dist-table td {
-            padding: 6px 8px;
-        }
-        .dist-table th:nth-child(1), .dist-table td:nth-child(1) { /* Coluna Descrição */
-            width: 75% !important;
-            text-align: left;
-            word-wrap: break-word;
-        }
-        .dist-table th:nth-child(2), .dist-table td:nth-child(2) { /* Coluna Qtde */
-            width: 25% !important;
-            text-align: right;
-        }
-        .scrollable-grid {
-            max-height: 175px; /* Altura aproximada para 4 linhas + cabeçalho */
-            overflow-y: auto;  /* Adiciona scroll vertical apenas quando necessário */
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            margin-bottom: 1rem; /* Adiciona um espaço abaixo de cada grid */
-        }
-    </style>
-    """
-    st.markdown(custom_table_css, unsafe_allow_html=True)
-
     layout_dataframes = [
         ("MEWS", 'contagem_mews'),
         ("BRADEN", 'contagem_braden'),
@@ -242,43 +208,13 @@ def exibir_cartoes_indicadores(indicadores):
         ("MARTINS", 'contagem_martins'),
     ]
 
-    cols_dataframes = st.columns(3)
+    cols_dataframes = st.columns(2)
 
     for i, (label, key) in enumerate(layout_dataframes):
-        with cols_dataframes[i % 3]:
-            if key in indicadores:
-                df_dist = indicadores[key].copy() # Usar .copy() para evitar avisos
-                if not df_dist.empty:
-                    # Garante que o DataFrame tenha uma altura mínima de 4 linhas para simetria visual
-                    min_target_rows = 4
-
-                    # Adiciona linhas vazias se tiver menos de 4 para manter a altura mínima
-                    rows_to_add = min_target_rows - len(df_dist)
-                    if rows_to_add > 0:
-                        # Cria linhas vazias com um valor de 'Descrição' único e invisível
-                        # para evitar o erro de "non-unique index" ao aplicar o estilo.
-                        empty_rows_data = [
-                            ['\u200b' * (n + 1), ''] for n in range(rows_to_add)
-                        ]
-                        empty_rows = pd.DataFrame(empty_rows_data, columns=df_dist.columns)
-                        df_dist = pd.concat([df_dist, empty_rows], ignore_index=True)
-
-                # Trunca a descrição para 44 caracteres, adicionando "..." se necessário.
-                df_dist['Descrição'] = df_dist['Descrição'].apply(
-                    lambda x: (x[:35] + '...') if isinstance(x, str) and len(x) > 44 else x
-                )
-
-                # Converte para HTML sem o índice do DataFrame.
-                html_table = df_dist.to_html(
-                    classes='dist-table',
-                    header=True,
-                    index=False, # Crucial para a formatação correta
-                    border=0
-                )
-
+        with cols_dataframes[i % 2]:
+            if key in indicadores and not indicadores[key].empty:
                 st.write(f"**Quantidade por {label}**")
-                # Envolve a tabela em um div com a classe de scroll
-                st.markdown(f'<div class="scrollable-grid">{html_table}</div>', unsafe_allow_html=True)
+                st.dataframe(indicadores[key])
 
 # --- Script Principal ---
 
@@ -334,7 +270,6 @@ if st.session_state.dados_censo is not None:
         
         indicadores = calcular_indicadores(df_resultado)
         exibir_cartoes_indicadores(indicadores)
-        st.divider() # Adiciona um espaçamento visual antes da seção de download
 
         # Prepara o DataFrame para exibição e download
         colunas_para_remover = [
