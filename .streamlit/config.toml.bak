@@ -1,0 +1,13 @@
+# .streamlit/config.toml
+
+# Esta configuração define quais páginas são visíveis na barra lateral.
+
+[[pages]]
+name = "Home"
+path = "Home.py"
+show_in_sidebar = false # Oculta a página Home da barra lateral
+
+[[pages]]
+name = "Censo"
+icon = "📊" # Adiciona um ícone para a página
+path = "Pages/Censo.py"

@@ -1,6 +1,6 @@
-# 30/07/2025
-# @IvanReis
-# HSF - PAINEL FLORENCE - CENSO
+# Data da última modificação: 2025-08-05
+# Autor: @IvanReis
+# Descrição: HSF - Painel Florence - Página de Censo de Pacientes
 
 import streamlit as st
 import pandas as pd
@@ -10,7 +10,7 @@ import io
 import oracledb
 
 # --- Configuração da Página ---
-st.set_page_config(layout="wide", initial_sidebar_state="expanded", page_title="Censo")
+st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 # --- Funções de Conexão com o Banco (Refatoradas) ---
 
