@@ -342,7 +342,7 @@ if st.session_state.dados_censo is not None:
             'CD_MORSE', 'CD_SAPSIII', 'CD_RASS', 'CD_GLASGOW','CD_FUGULIN'
         ]
         df_para_exibir = df_resultado.drop(columns=colunas_para_remover, errors='ignore')
-        df_para_exibir = df_para_exibir.sort_values(by='LEITO')
+        df_para_exibir = df_para_exibir.sort_values(by=['ENTRADA', 'LEITO'])
 
         # --- Botão de Download para Excel ---
         excel_bytes = dataframe_to_excel_bytes(df_para_exibir)

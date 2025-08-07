@@ -1,31 +1,39 @@
-#16/06/2025
-#@PLima
-#HFS - PAINEL PARA O FLORENCE
-
 import streamlit as st
 import datetime
 
-#venv\Scripts\activate
-#streamlit run Home.py --server.port 8002
+# Data da última modificação: 2024-05-24
+# Autor: @PLima
+# Descrição: HFS - Painel de indicadores para a equipe de Enfermagem (Florence).
 
-#Configurando pagina para exibicao em modo WIDE:
-st.set_page_config(layout="wide",initial_sidebar_state="expanded")
+# Comandos úteis:
+# Ativar ambiente virtual: venv\Scripts\activate
+# Rodar o app: streamlit run Home.py --server.port 8002
 
-# Caminho da sua imagem (ajuste conforme a sua estrutura de pastas)
-logo_path = 'HSF_LOGO_-_1228x949_001.png'
+# --- Configuração da Página ---
+# O título e o ícone da página podem ser definidos no .streamlit/config.toml,
+# mas é uma boa prática tê-los aqui como fallback.
+st.set_page_config(
+    page_title="HSF - Painel Enfermagem",
+    page_icon="🏥",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
+# --- Constantes ---
+LOGO_PATH = 'HSF_LOGO_-_1228x949_001.png'
+
+# --- Funções Auxiliares ---
 def agora():
-    agora = datetime.datetime.now()
-    agora = agora.strftime("%Y-%m-%d %H:%M:%S")
-    return str(agora)
+    """Retorna a data e hora atual formatada como string."""
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def main():
+    """Função principal que constrói a página inicial do aplicativo."""
+    st.logo(LOGO_PATH) # Adiciona o logo no topo da sidebar
+    st.image(LOGO_PATH, width=400)
+    st.title('Dashboard Florence - HSF - Enfermagem')
+    st.subheader('Destinado para exibição de indicadores pertinentes à Enfermagem do Hospital.')
 
 if __name__ == "__main__":
-    print(f'{agora()} - =================================== Home.py - __main__')
-    st.logo(logo_path,size="large")
-    #st.sidebar.markdown("# HOME")
-    st.image(logo_path,width=400)
-    st.write('\n\n\n\n')
-    st.write('\n\n\n\n')
-    st.write('# Dashboard Florence - HSF - Enfermagem')
-    st.write('\n\n\n\n')
-    st.write('## Destinado para exibição de indicadores pertinentes ao Enfermagem do Hospital...')
+    print(f'{agora()} - Executando Home.py')
+    main()
