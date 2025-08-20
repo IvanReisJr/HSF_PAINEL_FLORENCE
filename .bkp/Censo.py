@@ -70,7 +70,7 @@ def carregar_setores():
         st.error(f"Erro ao carregar setores: {e}")
         return pd.DataFrame(columns=["CD_SETOR_ATENDIMENTO", "DS_SETOR_ATENDIMENTO"])
 
-def carregar_dados(data_inicial, data_final, lista_cd_setor):
+def carregar_dados(data_inicial, data_final, cd_setor):
     """Carrega os dados principais do censo com base nos filtros."""
     if not _ORACLE_CLIENT_INITIALIZED:
         st.error("Cliente Oracle não inicializado.")
@@ -84,29 +84,14 @@ def carregar_dados(data_inicial, data_final, lista_cd_setor):
         st.error(f"Erro ao ler query.sql: {e}")
         return pd.DataFrame()
 
-    # Parâmetros base da query
     params = {
         'DATA_INICIAL': data_inicial.strftime('%d/%m/%Y'),
-        'DATA_FINAL': data_final.strftime('%d/%m/%Y')
+        'DATA_FINAL': data_final.strftime('%d/%m/%Y'),
+        'CD_SETOR_P': cd_setor
     }
-
-    # Constrói a cláusula de filtro para os setores de forma dinâmica e segura
-    # Usaremos um placeholder no SQL como /*{{FILTER_SETOR}}*/
-    if lista_cd_setor: # Se a lista não estiver vazia
-        bind_vars = [f":sector_{i}" for i in range(len(lista_cd_setor))]
-        for i, sector_code in enumerate(lista_cd_setor):
-            params[f"sector_{i}"] = sector_code
-
-        # Adicionamos o alias "POR." para especificar a coluna e resolver a ambiguidade.
-        in_clause = f"AND POR.CD_SETOR_ATENDIMENTO IN ({', '.join(bind_vars)})"
-        query = query.replace("/*{{FILTER_SETOR}}*/", in_clause)
-    else: # Se a lista estiver vazia (Todos os setores)
-        # Remove o placeholder sem adicionar filtro
-        query = query.replace("/*{{FILTER_SETOR}}*/", "")
-
     try:
         conn = st.connection("oracle_db", type="sql")
-        df = conn.query(query, params=params, ttl=3600, show_spinner=False)
+        df = conn.query(query, params=params, ttl=3600)  # Cache por 1 hora
         df.columns = [c.upper() for c in df.columns]
         return df
     except Exception as e:
@@ -156,13 +141,7 @@ def calcular_indicadores(df):
             # Cria o DataFrame de contagem de forma robusta, nomeando os eixos diretamente.
             df_counts = df[col_ds].value_counts().rename_axis('Descrição').reset_index(name='Qtde')
             indicadores[f'contagem_{nome}'] = df_counts
-
-    # --- Cálculos Derivados ---
-    # Calcula a quantidade de atendimentos sem classificação de Fugulin
-    if 'total_atendimentos' in indicadores and 'total_fugulin' in indicadores:
-        indicadores['sem_classificacao_fugulin'] = \
-            indicadores['total_atendimentos'] - indicadores['total_fugulin']
-
+            
     return indicadores
 
 def exibir_cartoes_indicadores(indicadores):
@@ -192,7 +171,6 @@ def exibir_cartoes_indicadores(indicadores):
         ("Total de FUGULIN", 'total_fugulin'),
         ("Total de MARTINS", 'total_martins'),
         ("Total de GLASGOW", 'total_glasgow'),
-        ("Sem Classificação", 'sem_classificacao_fugulin'),
     ]
     cols_linha3 = st.columns(4)
     for col, (label, key) in zip(cols_linha3, metricas_linha3):
@@ -295,39 +273,39 @@ initialize_oracle_client()
 st.title("Indicadores de Pacientes - Censo")
 
 # --- Filtros Principais ---
-col_data1, col_data2, col_botao = st.columns(3)
+col_filtro1, col_filtro2, col_filtro3, col_filtro4 = st.columns([3, 2, 2, 2])
 
-with col_data1:
+with col_filtro1:
+    df_setores = carregar_setores()
+    if not df_setores.empty:
+        setores_dict = dict(zip(df_setores['DS_SETOR_ATENDIMENTO'], df_setores['CD_SETOR_ATENDIMENTO']))
+        opcoes_setor = ["Todos"] + list(setores_dict.keys())
+        setor_selecionado_ds = st.selectbox("Setor", options=opcoes_setor)
+
+        if setor_selecionado_ds == "Todos":
+            cd_setor_selecionado = '0'
+        else:
+            cd_setor_selecionado = str(setores_dict[setor_selecionado_ds])
+    else:
+        st.warning("Setores não carregados.")
+        setor_selecionado_ds = st.selectbox("Setor", options=["Todos"], disabled=True)
+        cd_setor_selecionado = '0'
+
+with col_filtro2:
     data_inicial = st.date_input("Data inicial", value=datetime.date.today())
 
-with col_data2:
+with col_filtro3:
     data_final = st.date_input("Data final", value=datetime.date.today(), min_value=data_inicial)
 
-with col_botao:
+with col_filtro4:
     st.markdown("<br>", unsafe_allow_html=True)
     buscar = st.button("Buscar dados", type="primary", use_container_width=True)
-
-# --- Filtro de Setor (em uma nova linha) ---
-df_setores = carregar_setores()
-if not df_setores.empty:
-    setores_dict = dict(zip(df_setores['DS_SETOR_ATENDIMENTO'], df_setores['CD_SETOR_ATENDIMENTO']))
-    opcoes_setor = list(setores_dict.keys())
-    setores_selecionados_ds = st.multiselect(
-        "Setor(es)",
-        options=opcoes_setor,
-        placeholder="Selecione um ou mais setores"
-    )
-    lista_cd_setor_selecionado = [str(setores_dict[ds]) for ds in setores_selecionados_ds]
-else:
-    st.warning("Setores não carregados.")
-    st.multiselect("Setor(es)", options=[], disabled=True, placeholder="Nenhum setor disponível")
-    lista_cd_setor_selecionado = []
 
 # --- Lógica de Exibição ---
 if buscar:
     with st.spinner("Buscando dados no banco... Por favor, aguarde."):
         # A função carregar_dados agora é cacheada pelo st.connection
-        df_resultado = carregar_dados(data_inicial, data_final, lista_cd_setor_selecionado)
+        df_resultado = carregar_dados(data_inicial, data_final, cd_setor_selecionado)
 
     if df_resultado is None:
         # Erro já foi exibido dentro da função carregar_dados
