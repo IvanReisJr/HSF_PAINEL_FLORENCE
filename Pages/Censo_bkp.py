@@ -129,41 +129,45 @@ def calcular_indicadores(df):
     """
     Calcula os indicadores de forma modular e extensível.
     """
-    total_atendimentos = df['NR_ATENDIMENTO'].dropna().count()
     indicadores = {
-        'total_atendimentos': total_atendimentos
+        'total_atendimentos': df['NR_ATENDIMENTO'].dropna().count()
     }
 
     config_indicadores = [
-        {'nome': 'mews', 'cd': 'CD_MEWS', 'ds': 'MEWS'},
-        {'nome': 'braden', 'cd': 'CD_BRADEN', 'ds': 'BRADEN'},
-        {'nome': 'saps3', 'cd': 'CD_SAPSIII', 'ds': 'SAP3'},
-        {'nome': 'rass', 'cd': 'CD_RASS', 'ds': 'RASS'},
-        {'nome': 'glasgow', 'cd': 'CD_GLASGOW', 'ds': 'GLASGOW'},
-        {'nome': 'fugulin', 'cd': 'CD_FUGULIN', 'ds': 'FUGULIN'},
-        {'nome': 'martins', 'cd': 'MARTINS', 'ds': 'MARTINS'},
+        {'nome': 'mews', 'cd': 'CD_MEWS', 'ds': 'MEWS', 'tipo': 'contagem'},
+        {'nome': 'braden', 'cd': 'CD_BRADEN', 'ds': 'BRADEN', 'tipo': 'contagem'},
+        {'nome': 'saps3', 'cd': 'CD_SAPSIII', 'ds': 'SAP3', 'tipo': 'contagem'},
+        {'nome': 'rass', 'cd': 'CD_RASS', 'ds': 'RASS', 'tipo': 'contagem'},
+        {'nome': 'glasgow', 'cd': 'CD_GLASGOW', 'ds': 'GLASGOW', 'tipo': 'contagem'},
+        {'nome': 'fugulin', 'cd': 'CD_FUGULIN', 'ds': 'FUGULIN', 'tipo': 'contagem'},
+        {'nome': 'martins', 'cd': 'MARTINS', 'ds': 'MARTINS', 'tipo': 'contagem'},
     ]
 
     for config in config_indicadores:
-        nome, col_cd, col_ds = config['nome'], config['cd'], config['ds']
+        nome, col_cd, col_ds, tipo = config['nome'], config['cd'], config['ds'], config['tipo']
         
-        total_classificado = 0
         if col_cd in df.columns:
-            total_classificado = df[col_cd].dropna().count()
+            if tipo == 'soma':
+                indicadores[f'total_{nome}'] = pd.to_numeric(df[col_cd], errors='coerce').sum()
+            elif tipo == 'contagem':
+                indicadores[f'total_{nome}'] = df[col_cd].dropna().count()
         
-        indicadores[f'total_{nome}'] = total_classificado
-        indicadores[f'sem_classificacao_{nome}'] = total_atendimentos - total_classificado
-
         if col_ds and col_ds in df.columns:
             # Cria o DataFrame de contagem de forma robusta, nomeando os eixos diretamente.
             df_counts = df[col_ds].value_counts().rename_axis('Descrição').reset_index(name='Qtde')
             indicadores[f'contagem_{nome}'] = df_counts
 
+    # --- Cálculos Derivados ---
+    # Calcula a quantidade de atendimentos sem classificação de Fugulin
+    if 'total_atendimentos' in indicadores and 'total_fugulin' in indicadores:
+        indicadores['sem_classificacao_fugulin'] = \
+            indicadores['total_atendimentos'] - indicadores['total_fugulin']
+
     return indicadores
 
 def exibir_cartoes_indicadores(indicadores):
     """
-    Exibe os indicadores de forma modular e extensível com o novo layout.
+    Exibe os indicadores em cartões (métricas) no Streamlit.
     """
     # --- Linha 1: Total de Atendimentos ---
     if 'total_atendimentos' in indicadores:
@@ -175,7 +179,7 @@ def exibir_cartoes_indicadores(indicadores):
         ("Total de MEWS", 'total_mews'),
         ("Total de BRADEN", 'total_braden'),
         ("Total de SAP3", 'total_saps3'),
-        ("Total de FUGULIN", 'total_fugulin'),
+        ("Total de RASS", 'total_rass'),
     ]
     cols_linha2 = st.columns(4)
     for col, (label, key) in zip(cols_linha2, metricas_linha2):
@@ -183,44 +187,16 @@ def exibir_cartoes_indicadores(indicadores):
             if key in indicadores:
                 st.metric(label, int(indicadores[key]))
 
-    # --- Linha 3: 3 colunas de métricas (em layout de 4 para alinhamento) ---
+    # --- Linha 3: 4 colunas de métricas ---
     metricas_linha3 = [
-        ("Total de RASS", 'total_rass'),
+        ("Total de FUGULIN", 'total_fugulin'),
         ("Total de MARTINS", 'total_martins'),
-        ("Total de GLASGOW", 'total_glasgow')
+        ("Total de GLASGOW", 'total_glasgow'),
+        ("Sem Classificação", 'sem_classificacao_fugulin'),
     ]
-    cols_linha3 = st.columns(4) # Usamos 4 colunas, mas só populamos 3 para alinhar com a linha de cima.
+    cols_linha3 = st.columns(4)
     for col, (label, key) in zip(cols_linha3, metricas_linha3):
         with col:
-            if key in indicadores:
-                st.metric(label, int(indicadores[key]))
-
-    st.divider()
-
-    # --- NOVA SEÇÃO: Pacientes sem Classificação ---
-    st.subheader("Pacientes sem Classificação de Risco/Escala")
-    metricas_sem_classificacao = [
-        ("Sem MEWS", 'sem_classificacao_mews'),
-        ("Sem BRADEN", 'sem_classificacao_braden'),
-        ("Sem SAPS3", 'sem_classificacao_saps3'),
-        ("Sem FUGULIN", 'sem_classificacao_fugulin'),
-        ("Sem RASS", 'sem_classificacao_rass'),        
-        ("Sem MARTINS", 'sem_classificacao_martins'),
-        ("Sem GLASGOW", 'sem_classificacao_glasgow'),
-    ]
-
-    # Exibe as métricas em 2 linhas (4 colunas na primeira, 3 na segunda para alinhamento)
-    cols_sem_class_1 = st.columns(4)
-    for i in range(4): # Primeira linha com 4 métricas
-        with cols_sem_class_1[i]:
-            label, key = metricas_sem_classificacao[i]
-            if key in indicadores:
-                st.metric(label, int(indicadores[key]))
-
-    cols_sem_class_2 = st.columns(4) # Usamos 4 colunas para manter o alinhamento visual
-    for i in range(3): # Segunda linha com as 3 métricas restantes
-        with cols_sem_class_2[i]:
-            label, key = metricas_sem_classificacao[i + 4]
             if key in indicadores:
                 st.metric(label, int(indicadores[key]))
 
