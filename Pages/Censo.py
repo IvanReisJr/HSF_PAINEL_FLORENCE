@@ -204,23 +204,17 @@ def exibir_cartoes_indicadores(indicadores):
         ("Sem BRADEN", 'sem_classificacao_braden'),
         ("Sem SAPS3", 'sem_classificacao_saps3'),
         ("Sem FUGULIN", 'sem_classificacao_fugulin'),
-        ("Sem RASS", 'sem_classificacao_rass'),        
+        ("Sem RASS", 'sem_classificacao_rass'),
         ("Sem MARTINS", 'sem_classificacao_martins'),
         ("Sem GLASGOW", 'sem_classificacao_glasgow'),
     ]
 
-    # Exibe as métricas em 2 linhas (4 colunas na primeira, 3 na segunda para alinhamento)
-    cols_sem_class_1 = st.columns(4)
-    for i in range(4): # Primeira linha com 4 métricas
-        with cols_sem_class_1[i]:
-            label, key = metricas_sem_classificacao[i]
-            if key in indicadores:
-                st.metric(label, int(indicadores[key]))
-
-    cols_sem_class_2 = st.columns(4) # Usamos 4 colunas para manter o alinhamento visual
-    for i in range(3): # Segunda linha com as 3 métricas restantes
-        with cols_sem_class_2[i]:
-            label, key = metricas_sem_classificacao[i + 4]
+    # Exibe as métricas em um grid dinâmico de 4 colunas.
+    # Isso simplifica o código e o torna mais fácil de manter.
+    cols = st.columns(4)
+    for i, (label, key) in enumerate(metricas_sem_classificacao):
+        col_index = i % 4
+        with cols[col_index]:
             if key in indicadores:
                 st.metric(label, int(indicadores[key]))
 

@@ -35,5 +35,7 @@ def main():
     st.subheader('Destinado para exibição de indicadores pertinentes à Enfermagem do Hospital.')
 
 if __name__ == "__main__":
-    print(f'{agora()} - Executando Home.py')
-    main()
+    # Este bloco é executado quando o script é chamado diretamente com 'python Home.py'.
+    # Para rodar o aplicativo Streamlit, use o comando: streamlit run Home.py
+    print("Para iniciar o aplicativo, execute o seguinte comando no seu terminal:")
+    print("streamlit run Home.py --server.port 8002")
