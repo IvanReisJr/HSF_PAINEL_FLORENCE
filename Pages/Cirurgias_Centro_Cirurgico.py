@@ -190,6 +190,28 @@ def dataframe_to_excel_bytes(df: pd.DataFrame, title: str) -> bytes:
     processed_data = output.getvalue()
     return processed_data
 
+def exibir_kpis_resumo(df: pd.DataFrame):
+    """
+    Calcula e exibe os KPIs de resumo (Total, Eletivas, Urgências).
+    """
+    st.subheader("Resumo do Período")
+    
+    # Cálculos
+    total_geral = df['QT_TOTAL'].sum()
+    # Filtra pelos valores corretos ('Eletiva' e 'Urgência / Emergência') e soma.
+    total_eletivas = df[df['GRUPO_CARATER'] == 'Eletiva']['QT_TOTAL'].sum()
+    # Filtra por 'Urgência / Emergência' para corresponder aos dados.
+    total_urgencias = df[df['GRUPO_CARATER'] == 'Urgência / Emergência']['QT_TOTAL'].sum()
+
+    # Exibição em colunas
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("🧑‍⚕️ Total de Cirurgias", int(total_geral))
+    with col2:
+        st.metric("📅 Cirurgias Eletivas", int(total_eletivas))
+    with col3:
+        st.metric("🚑 Cirurgias de Urgência", int(total_urgencias))
+
 def exibir_tabela_cirurgias(df):
     """
     Exibe a tabela formatada com os dados de cirurgias,
@@ -210,7 +232,7 @@ def exibir_tabela_cirurgias(df):
         df_pivotado = df_renomeado.pivot_table(
             index='DATA',
             columns='GRUPO_CARATER',
-            values=['Porte 1', 'Porte 2', 'Porte 3', 'Porte 4'],
+            values=['Porte 1', 'Porte 2', 'Porte 3', 'Porte 4', 'Total'],
             aggfunc='sum',
             fill_value=0
         )
@@ -269,7 +291,7 @@ def exibir_tabela_cirurgias(df):
     df_para_exportar.columns = new_cols_for_export
     # FIM DO NOVO CÓDIGO
 
-    # Criação do cabeçalho multinível no Streamlit
+    # Criação da tabela detalhada no Streamlit
     st.subheader("🛏️ Centro Cirúrgico - 9 Salas")
  
     # --- Estilização para Centralização (Método de Injeção de CSS) ---
@@ -294,9 +316,22 @@ def exibir_tabela_cirurgias(df):
     # Aplicamos apenas o estilo da linha de total, pois o alinhamento já foi tratado pelo CSS injetado.
     def highlight_total(row):
         # Acessa a coluna de data pelo nome do MultiIndex para o display
-        return ['font-weight: bold' if row[('DATA', '')] == 'Total' else '' for _ in row]
+        # Adiciona negrito, cor de fundo e cor de texto para garantir a visibilidade em todos os temas.
+        style = 'font-weight: bold; background-color: #f0f2f6; color: black;'
+        return [style if row[('DATA', '')] == 'Total' else '' for _ in row]
+ 
+    # Identifica as colunas para aplicar os estilos de cor de fundo
+    eletiva_cols = [col for col in df_final.columns if col[0] == 'Eletiva']
+    urgencia_cols = [col for col in df_final.columns if col[0] == 'Urgência / Emergência']
+    total_cols = [col for col in df_final.columns if col[1] == 'Total']
 
-    styled_df = df_final.style.apply(highlight_total, axis=1)
+    # Aplica os estilos de forma encadeada. Adicionamos 'color: black' para garantir
+    # a legibilidade no modo escuro.
+    styled_df = df_final.style \
+        .set_properties(subset=eletiva_cols, **{'background-color': '#e6f7ff', 'color': 'black'}) \
+        .set_properties(subset=urgencia_cols, **{'background-color': '#fff0e6', 'color': 'black'}) \
+        .set_properties(subset=total_cols, **{'font-weight': 'bold'}) \
+        .apply(highlight_total, axis=1)
     st.dataframe(styled_df, hide_index=True, use_container_width=True)
 
     return df_para_exportar
@@ -306,16 +341,16 @@ def exibir_tabela_cirurgias(df):
 
 initialize_oracle_client()
 
-st.title("Indicadores de Cirurgias")
+st.title("Cirurgias")
 
 # --- Filtros Principais ---
 col_data1, col_data2, col_botao = st.columns(3)
 
 with col_data1:
-    data_inicial = st.date_input("Data inicial", value=datetime.date(2025, 6, 1))
+    data_inicial = st.date_input("Data inicial", value=datetime.date.today())
 
 with col_data2:
-    data_final = st.date_input("Data final", value=datetime.date(2025, 6, 30), min_value=data_inicial)
+    data_final = st.date_input("Data final", value=datetime.date.today(), min_value=data_inicial)
 
 with col_botao:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -329,6 +364,10 @@ if buscar:
     if df_resultado is None:
         pass
     elif not df_resultado.empty:
+        # Adiciona a nova seção de KPIs de resumo
+        exibir_kpis_resumo(df_resultado)
+        st.divider()
+
         # A função agora exibe a tabela e retorna o dataframe formatado para exportação
         df_para_exportar = exibir_tabela_cirurgias(df_resultado)
         st.divider()
