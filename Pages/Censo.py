@@ -31,21 +31,29 @@ def initialize_oracle_client():
     nome_pasta = "instantclient-basiclite-windows.x64-23.6.0.24.10\\instantclient_23_6"
     caminho_instantclient = os.path.join(diretorio_raiz_projeto, nome_pasta)
 
-    if not os.path.exists(caminho_instantclient):
-        st.error("Erro crítico: Oracle Instant Client não encontrado.")
-        return False
+    # Tenta inicializar com o caminho específico se existir
+    if os.path.exists(caminho_instantclient):
+        try:
+            oracledb.init_oracle_client(lib_dir=caminho_instantclient)
+            _ORACLE_CLIENT_INITIALIZED = True
+            return True
+        except Exception as e:
+            if "already been initialized" in str(e):
+                _ORACLE_CLIENT_INITIALIZED = True
+                return True
+            print(f"Aviso: Falha ao inicializar com path específico: {e}. Tentando padrão do sistema.")
 
+    # Tentativa de fallback (sem path, usa PATH do sistema)
     try:
-        oracledb.init_oracle_client(lib_dir=caminho_instantclient)
+        oracledb.init_oracle_client()
         _ORACLE_CLIENT_INITIALIZED = True
         return True
     except Exception as e_init:
-        # Ignora o erro se o cliente já foi inicializado em outra página
-        if "already been initialized" not in str(e_init):
-            st.error(f"Erro ao inicializar o cliente Oracle: {e_init}")
-            return False
-        _ORACLE_CLIENT_INITIALIZED = True
-        return True
+        if "already been initialized" in str(e_init):
+            _ORACLE_CLIENT_INITIALIZED = True
+            return True
+        st.error(f"Erro fatal ao inicializar Oracle Client (Thick Mode): {e_init}. Verifique se o Instant Client está instalado e configurado.")
+        return False
 
 # --- Funções de Carregamento de Dados (com Cache) ---
 
@@ -95,9 +103,9 @@ def carregar_dados(data_inicial, data_final, lista_cd_setor):
     if lista_cd_setor: # Se a lista não estiver vazia
         bind_vars = [f":sector_{i}" for i in range(len(lista_cd_setor))]
         for i, sector_code in enumerate(lista_cd_setor):
-            params[f"sector_{i}"] = sector_code
+            params[f"sector_{i}"] = int(sector_code)
 
-        # Adicionamos o alias "POR." para especificar a coluna e resolver a ambiguidade.
+        # Adicionamos o alias "POR." para resolver a ambiguidade (ORA-00918), pois a coluna existe em ambas as tabelas.
         in_clause = f"AND POR.CD_SETOR_ATENDIMENTO IN ({', '.join(bind_vars)})"
         query = query.replace("/*{{FILTER_SETOR}}*/", in_clause)
     else: # Se a lista estiver vazia (Todos os setores)
@@ -106,8 +114,43 @@ def carregar_dados(data_inicial, data_final, lista_cd_setor):
 
     try:
         conn = st.connection("oracle_db", type="sql")
-        df = conn.query(query, params=params, ttl=3600, show_spinner=False)
+        # TTL definido como 0 para garantir que a busca sempre traga dados atualizados do banco
+        df = conn.query(query, params=params, ttl=0, show_spinner=False)
         df.columns = [c.upper() for c in df.columns]
+
+        # --- OTIMIZAÇÃO DE PERFORMANCE ---
+        # Processamento das colunas concatenadas (Código | Descrição) vindas do SQL otimizado
+        def split_and_assign(dataframe, raw_col, col_code, col_desc):
+            if raw_col in dataframe.columns:
+                try:
+                    split_data = dataframe[raw_col].astype(str).str.split('|', n=1, expand=True)
+                    if not split_data.empty:
+                        # Se houver apenas 1 coluna após o split (sem separador), a segunda será NaN
+                        if split_data.shape[1] == 1:
+                            split_data[1] = None
+                        dataframe[col_code] = split_data[0]
+                        dataframe[col_desc] = split_data[1]
+                        
+                        # Tratar strings 'None' ou 'nan' resultantes da conversão astype(str) em nulos reais
+                        dataframe[col_code] = dataframe[col_code].replace({'None': None, 'nan': None})
+                        dataframe[col_desc] = dataframe[col_desc].replace({'None': None, 'nan': None})
+                except Exception as ex_split:
+                    print(f"Erro ao processar coluna {raw_col}: {ex_split}")
+                    dataframe[col_code] = None
+                    dataframe[col_desc] = None
+                
+                # Remove a coluna raw para limpeza
+                dataframe.drop(columns=[raw_col], inplace=True)
+
+        split_and_assign(df, 'RAW_MEWS', 'CD_MEWS', 'MEWS')
+        split_and_assign(df, 'RAW_BRADEN', 'CD_BRADEN', 'BRADEN')
+        split_and_assign(df, 'RAW_MORSE', 'CD_MORSE', 'MORSE')
+        split_and_assign(df, 'RAW_SAPS3', 'CD_SAPSIII', 'SAP3')
+        split_and_assign(df, 'RAW_RASS', 'CD_RASS', 'RASS')
+        split_and_assign(df, 'RAW_FUGULIN', 'CD_FUGULIN', 'FUGULIN')
+        split_and_assign(df, 'RAW_GLASGOW', 'CD_GLASGOW', 'GLASGOW')
+        # ---------------------------------
+
         return df
     except Exception as e:
         st.error(f"Erro ao executar a query: {e}")
@@ -319,7 +362,12 @@ with col_data1:
     data_inicial = st.date_input("Data inicial", value=datetime.date.today())
 
 with col_data2:
-    data_final = st.date_input("Data final", value=datetime.date.today(), min_value=data_inicial)
+    data_final = st.date_input("Data final", value=datetime.date.today())
+
+intervalo_datas_valido = True
+if data_final < data_inicial:
+    st.error("Data final não pode ser anterior à data inicial.")
+    intervalo_datas_valido = False
 
 with col_botao:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -335,14 +383,14 @@ if not df_setores.empty:
         options=opcoes_setor,
         placeholder="Selecione um ou mais setores"
     )
-    lista_cd_setor_selecionado = [str(setores_dict[ds]) for ds in setores_selecionados_ds]
+    lista_cd_setor_selecionado = [setores_dict[ds] for ds in setores_selecionados_ds]
 else:
     st.warning("Setores não carregados.")
     st.multiselect("Setor(es)", options=[], disabled=True, placeholder="Nenhum setor disponível")
     lista_cd_setor_selecionado = []
 
 # --- Lógica de Exibição ---
-if buscar:
+if buscar and intervalo_datas_valido:
     with st.spinner("Buscando dados no banco... Por favor, aguarde."):
         # A função carregar_dados agora é cacheada pelo st.connection
         df_resultado = carregar_dados(data_inicial, data_final, lista_cd_setor_selecionado)
@@ -378,5 +426,15 @@ if buscar:
 
     else: # Se a busca foi feita mas não retornou dados
         st.warning("Nenhum dado encontrado para os filtros selecionados.")
+        # Debug para auxiliar na identificação de problemas de filtro
+        with st.expander("Detalhes Técnicos da Busca (Debug)"):
+            st.write("**Parâmetros enviados:**")
+            st.json({
+                "Data Inicial": data_inicial.strftime('%d/%m/%Y'),
+                "Data Final": data_final.strftime('%d/%m/%Y'),
+                "Qtd Setores Selecionados": len(lista_cd_setor_selecionado),
+                "IDs Setores": lista_cd_setor_selecionado
+            })
+            st.info("Verifique se há dados na tabela PH_OCUPACAO_RETROATIVA para este período e setores.")
 else: # Se nenhuma busca foi feita ainda
     st.info("Selecione os filtros acima e clique em 'Buscar dados'.")
