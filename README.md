@@ -29,36 +29,31 @@ O **Painel Florence** é uma aplicação web desenvolvida em Python com Streamli
 - **Porte Cirúrgico**: Classificação dos procedimentos por complexidade
 - **Tendências Temporais**: Análise histórica de volumes cirúrgicos
 
-### 3. Sistema de Alertas e Notificações
-- **Pacientes de Alto Risco**: Identificação automática baseada em parâmetros clínicos
-- **Escores Críticos**: Notificação quando pacientes atingem níveis de alerta
-- **Atrasos em Procedimentos**: Monitoramento de tempos de espera
+### 3. Outras Páginas
+- **Cirurgias**: Indicadores operacionais do centro cirúrgico
 
 ## 🛠️ Arquitetura Tecnológica
 
 ### Stack de Tecnologias
 - **Backend**: Python 3.8+
-- **Framework Web**: Streamlit 1.28+
-- **Banco de Dados**: Oracle Database (via Oracle Instant Client)
-- **Bibliotecas de Dados**: Pandas, NumPy
-- **Visualização**: Streamlit Native Charts, Plotly
-- **Exportação**: OpenPyXL (Excel), CSV
+- **Framework Web**: Streamlit
+- **Banco de Dados**: Oracle Database (via oracledb + Instant Client)
+- **Bibliotecas de Dados**: Pandas
+- **Exportação**: OpenPyXL (Excel)
 
 ### Estrutura do Projeto
 ```
-HSF_PAINEL_ENFERMAGEM_V02/
+HSF_PAINEL_FLORENCE/
 ├── Home.py                    # Página principal e navegação
 ├── Pages/
 │   ├── Censo.py              # Dashboard de censo de pacientes
 │   ├── Cirurgias_Centro_Cirurgico.py  # Dashboard de cirurgias
-│   ├── query.sql             # Queries do banco de dados
-│   └── style.css             # Estilos personalizados
-├── instantclient-basiclite-windows.x64/  # Oracle Instant Client
+│   └── query.sql             # Queries do banco de dados (censo)
+├── instantclient-basiclite-windows.x64-23.6.0.24.10/  # Oracle Instant Client
 ├── .streamlit/
-│   ├── config.toml           # Configurações do Streamlit
-│   └── secrets.toml          # Credenciais do banco (não versionado)
+│   └── config.toml (opcional)  # Configurações do Streamlit
 ├── requirements.txt           # Dependências Python
-└── HSF_LOGO.png              # Identidade visual do hospital
+└── HSF_LOGO_-_1228x949_001.png  # Identidade visual do hospital
 ```
 
 ## 📋 Escalas de Avaliação Suportadas
@@ -108,7 +103,7 @@ HSF_PAINEL_ENFERMAGEM_V02/
 1. **Clone o repositório**
 ```bash
 git clone <URL_DO_REPOSITORIO>
-cd HSF_PAINEL_ENFERMAGEM_V02
+cd HSF_PAINEL_FLORENCE
 ```
 
 2. **Crie e ative ambiente virtual**
@@ -169,64 +164,17 @@ streamlit run Home.py --server.port 8002
 4. **Análise por Porte**: Complexidade dos procedimentos
 5. **Exportação Excel**: Relatórios formatados para gestão
 
-## 🔒 Segurança e Conformidade
+## 🔒 Considerações
+- Dados clínicos são obtidos via consultas ao Oracle. Configure credenciais localmente em `.streamlit/secrets.toml` (não versionado).
 
-### Controle de Acesso
-- **Autenticação**: Integração com sistema de autenticação hospitalar
-- **Autorização**: Perfis de usuário baseados em função
-- **Auditoria**: Logs de acesso e modificações
+## 📈 Performance
+- Uso de cache via `st.connection(..., ttl=3600)` onde aplicável.
 
-### Proteção de Dados
-- **Criptografia**: Conexões SSL/TLS com o banco de dados
-- **Dados Sensíveis**: Conformidade com LGPD e HIPAA
-- **Backup**: Rotinas automáticas de backup
+## 🎯 Público-Alvo
+- Equipe de Enfermagem e Gestores assistenciais.
 
-### Privacidade
-- **Minimização**: Apenas dados necessários para a função
-- **Anonimização**: Opções para ocultar identificadores
-- **Consentimento**: Respeito às preferências do paciente
-
-## 📈 Performance e Escalabilidade
-
-### Otimizações Implementadas
-- **Cache de Queries**: TTL de 3600 segundos para dados estáticos
-- **Lazy Loading**: Carregamento sob demanda de grandes datasets
-- **Paginação**: Limitação de registros por página
-- **Índices Database**: Queries otimizadas com índices apropriados
-
-### Métricas de Performance
-- **Tempo de Resposta**: < 3 segundos para queries principais
-- **Capacidade de Conexão**: Suporte até 50 usuários simultâneos
-- **Uso de Memória**: < 2GB RAM para datasets típicos
-
-## 🎯 Casos de Uso e Benefícios
-
-### Para Enfermeiros
-- **Rapidez no Check-in**: Visualização instantânea do status do paciente
-- **Priorização de Cuidados**: Identificação automática de pacientes críticos
-- **Documentação**: Redução de tempo em preenchimento de formulários
-
-### Para Gestores
-- **Alocação de Recursos**: Distribuição otimizada de profissionais
-- **Indicadores de Qualidade**: Monitoramento de métricas hospitalares
-- **Planejamento Estratégico**: Dados históricos para tomada de decisão
-
-### Para Pacientes
-- **Segurança**: Monitoramento contínuo de sinais de risco
-- **Eficiência**: Redução de tempos de espera
-- **Qualidade**: Cuidado baseado em evidências
-
-## 🔧 Manutenção e Suporte
-
-### Rotinas de Manutenção
-- **Atualização de Queries**: Revisão mensal de performance
-- **Backup de Dados**: Execução diária automatizada
-- **Monitoramento**: Alertas de disponibilidade e performance
-
-### Suporte Técnico
-- **Nível 1**: Help desk hospitalar (24/7)
-- **Nível 2**: Equipe de TI interna (horário comercial)
-- **Nível 3**: Desenvolvedores do sistema (sob demanda)
+## 🔧 Manutenção
+- Atualize queries conforme necessidade clínica e desempenho.
 
 ## 📚 Referências e Recursos
 
@@ -245,20 +193,8 @@ streamlit run Home.py --server.port 8002
 - [Oracle Database Documentation](https://docs.oracle.com/en/database/)
 - [Healthcare Data Visualization Best Practices](https://www.healthitanalytics.com/)
 
-## 🤝 Contribuições e Desenvolvimento
-
-### Roadmap de Desenvolvimento
-- **Fase 1**: Dashboards básicos de censo e cirurgias ✓
-- **Fase 2**: Sistema de alertas e notificações (em desenvolvimento)
-- **Fase 3**: Integração com dispositivos IoT e monitores
-- **Fase 4**: Analytics avançado e machine learning
-
-### Como Contribuir
-1. Fork o repositório
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
-5. Abra um Pull Request
+## 🤝 Contribuições
+- Veja [CONTRIBUTING.md](file:///c:/IvanReis/Paineis/HSF_PAINEL_FLORENCE/CONTRIBUTING.md) para diretrizes de contribuição.
 
 ## 📄 Licença e Termos de Uso
 

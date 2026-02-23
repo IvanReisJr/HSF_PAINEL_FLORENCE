@@ -1,6 +1,4 @@
 streamlit
 pandas
 oracledb
-schedule
-python-dotenv
 openpyxl

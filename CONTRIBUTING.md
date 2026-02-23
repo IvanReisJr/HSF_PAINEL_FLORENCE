@@ -1,6 +1,6 @@
-# Guia de Contribuição - Painel de Laboratório HSF
+# Guia de Contribuição - Painel de Enfermagem HSF
 
-Agradecemos o interesse em contribuir para o desenvolvimento do Painel de Laboratório. Sua ajuda é valiosa para melhorar esta ferramenta para toda a equipe.
+Agradecemos o interesse em contribuir para o desenvolvimento do Painel de Enfermagem. Sua ajuda é valiosa para melhorar esta ferramenta para toda a equipe.
 
 Para garantir um processo de colaboração organizado e eficiente, pedimos que siga as diretrizes abaixo.
 
@@ -45,7 +45,7 @@ git checkout -b feature/filtro-por-setor
 -   **Adicione suas alterações:** Faça o `git add` dos arquivos que você modificou.
 -   **Faça o commit:** Escreva uma mensagem de commit clara e concisa.
     ```bash
-    git commit -m "Feat: Adiciona filtro por setor na página do Pronto Socorro"
+    git commit -m "Feat: Adiciona filtro por setor na página de Censo"
     ```
 -   **Envie para o repositório:**
     ```bash
