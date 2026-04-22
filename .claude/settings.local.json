@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd /c \"c:\\\\IvanReis\\\\Paineis\\\\_Homologação\\\\HSF_PAINEL_FLORENCE\\\\venv\\\\Scripts\\\\pip.exe freeze 2>&1\")",
+      "Bash(powershell -NoProfile -Command \"& 'c:\\\\IvanReis\\\\Paineis\\\\_Homologação\\\\HSF_PAINEL_FLORENCE\\\\venv\\\\Scripts\\\\pip.exe' freeze\")",
+      "Bash(cmd /c \"cd /d \\\\\"c:\\\\IvanReis\\\\Paineis\\\\_Homologação\\\\HSF_PAINEL_FLORENCE\\\\\" && venv\\\\Scripts\\\\activate.bat && venv\\\\Scripts\\\\pytest.exe tests/ -v 2>&1\")"
+    ]
+  }
+}

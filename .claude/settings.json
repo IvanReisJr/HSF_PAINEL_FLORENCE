@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"& 'c:\\\\IvanReis\\\\Paineis\\\\_Homologação\\\\HSF_PAINEL_FLORENCE\\\\venv\\\\Scripts\\\\pip.exe' install pytest 2>&1\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"& 'c:\\\\IvanReis\\\\Paineis\\\\_Homologação\\\\HSF_PAINEL_FLORENCE\\\\venv\\\\Scripts\\\\python.exe' -m pip install pytest 2>&1\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location 'c:\\\\IvanReis\\\\Paineis\\\\_Homologação\\\\HSF_PAINEL_FLORENCE'; & '.\\\\venv\\\\Scripts\\\\python.exe' -m pytest tests/ -v 2>&1\")"
+    ]
+  }
+}
