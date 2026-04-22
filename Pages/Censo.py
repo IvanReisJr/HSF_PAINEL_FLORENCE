@@ -42,7 +42,7 @@ def carregar_setores():
 
 def carregar_dados(data_inicial, data_final, lista_cd_setor):
     """Carrega os dados principais do censo com base nos filtros."""
-    query_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "query.sql")
+    query_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "querys", "query_censo_florence.sql")
     try:
         with open(query_file_path, "r", encoding="utf-8") as f:
             query = f.read()

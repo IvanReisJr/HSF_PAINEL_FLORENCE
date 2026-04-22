@@ -26,7 +26,7 @@ apply_florence_ui()
 
 def carregar_dados_cirurgias(data_inicial, data_final):
     """Carrega os dados de cirurgias do centro cirúrgico."""
-    query_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "query_centro_cirurgico.sql")
+    query_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "querys", "query_centro_cirurgico_florence.sql")
     try:
         with open(query_file_path, "r", encoding="utf-8") as f:
             query = f.read()
